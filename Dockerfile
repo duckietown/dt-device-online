@@ -1,5 +1,5 @@
 # parameters
-ARG REPO_NAME="<REPO_NAME_HERE>"
+ARG REPO_NAME="dt-device-online"
 
 # ==================================================>
 # ==> Do not change this code
@@ -21,7 +21,7 @@ RUN mkdir -p "${REPO_PATH}"
 
 # copy dependencies files only
 COPY ./dependencies-apt.txt "${REPO_PATH}/"
-COPY ./dependencies-py.txt "${REPO_PATH}/"
+COPY ./dependencies-py3.txt "${REPO_PATH}/"
 
 # install apt dependencies
 RUN apt-get update \
@@ -30,12 +30,13 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # install python dependencies
-RUN pip install -r ${REPO_PATH}/dependencies-py.txt
+RUN pip3 install -r ${REPO_PATH}/dependencies-py3.txt
 
 # copy the source code
 COPY ./code/. "${REPO_PATH}/"
 
 # define launch script
+COPY ./launch.sh "${REPO_PATH}/"
 ENV LAUNCHFILE "${REPO_PATH}/launch.sh"
 
 # define command
@@ -43,8 +44,5 @@ CMD ["bash", "-c", "${LAUNCHFILE}"]
 # <== Do not change this code
 # <==================================================
 
-# define command
-CMD "<CMD_HERE>"
-
 # maintainer
-LABEL maintainer="<YOUR_FULL_NAME> (<YOUR_EMAIL_ADDRESS>)"
+LABEL maintainer="Andrea F. Daniele (afdaniele@ttic.edu)"
