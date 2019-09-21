@@ -1,7 +1,7 @@
 <?xml version="1.0" standalone='no'?><!--*-nxml-*-->
 <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
 <service-group>
-  <name replace-wildcards="no">DT::ONLINE</name>
+  <name replace-wildcards="yes">DT::ONLINE::%h</name>
   <service>
     <type>_duckietown._tcp</type>
     <txt-record>{"type": "DT_ROBOT_TYPE"}</txt-record>
