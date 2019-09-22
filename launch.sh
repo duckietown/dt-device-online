@@ -11,8 +11,7 @@ dt_launchfile_init
 
 
 # launching app
-python3 -m "dt_broadcaster.main" &
-echo $! > /process.pid
+dt_exec python3 -m "dt_broadcaster.main"
 
 
 # ----------------------------------------------------------------------------
