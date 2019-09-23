@@ -1,9 +1,6 @@
 # parameters
 ARG REPO_NAME="dt-device-online"
 
-# maintainer
-LABEL maintainer="Andrea F. Daniele (afdaniele@ttic.edu)"
-
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
@@ -56,3 +53,6 @@ ENV LAUNCHFILE "${REPO_PATH}/launch.sh"
 CMD ["bash", "-c", "${LAUNCHFILE}"]
 # <== Do not change this code
 # <==================================================
+
+# maintainer
+LABEL maintainer="Andrea F. Daniele (afdaniele@ttic.edu)"
