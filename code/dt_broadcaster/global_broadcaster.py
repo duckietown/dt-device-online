@@ -11,7 +11,7 @@ class GlobalBroadcaster(DTProcess):
     location_last_update = 0.0
     forget_location_after_mins = 60
     geolocation_timeout_secs = 5.0
-    broadcast_period_secs = 10.0
+    broadcast_period_secs = 1.0 * 60.0
     hearthbeat_hz = 1.0
     protocol = "https"
     host = "dashboard.duckietown.org"
