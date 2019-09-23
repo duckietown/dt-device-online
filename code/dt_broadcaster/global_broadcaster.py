@@ -1,8 +1,6 @@
 import os
 import time
-import subprocess
 import requests
-from dt_proc_utils import run_cmd
 from dt_class_utils import DTProcess
 
 class GlobalBroadcaster(DTProcess):
