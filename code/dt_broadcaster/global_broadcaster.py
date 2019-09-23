@@ -31,7 +31,7 @@ class GlobalBroadcaster(DTProcess):
         # read dt-token
         if os.path.exists(self.token_file):
             with open(self.token_file) as fin:
-                self.token = fin.read().decode('utf-8').strip()
+                self.token = fin.read().strip()
         # perform geo-localization
         try:
             r = requests.get(self.geolocation_app, timeout=self.geolocation_timeout_secs)
