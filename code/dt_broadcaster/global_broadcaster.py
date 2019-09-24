@@ -2,6 +2,8 @@ import os
 import time
 import requests
 from dt_class_utils import DTProcess
+from dt_avahi_utils import enable_service, disable_service
+
 
 class GlobalBroadcaster(DTProcess):
 
@@ -25,7 +27,6 @@ class GlobalBroadcaster(DTProcess):
         # update
         self.last_broadcast = 0.0
         self.location_last_update = time.time()
-        self.update()
 
     def update(self):
         # read dt-token
@@ -38,8 +39,13 @@ class GlobalBroadcaster(DTProcess):
             if r.status_code == 200:
                 self.geodata = r.text.strip()
                 self.location_last_update = time.time()
+                # we were able to contact the remote API, the device is online
+                enable_service("dt.online")
+            else:
+                # we were NOT able to contact the remote API, the device is offline
+                disable_service("dt.online")
         except:
-            pass
+            disable_service("dt.online")
         self.location_age_secs = time.time() - self.location_last_update
         # forget location
         if self.location_age_secs >= self.forget_location_after_mins * 60:
@@ -52,8 +58,7 @@ class GlobalBroadcaster(DTProcess):
 
     def start(self):
         while not self.is_shutdown:
-            # broadcast (if needed)
-            if time.time() - self.last_broadcast > self.broadcast_period_secs:
+            if (time.time() - self.last_broadcast) > self.broadcast_period_secs:
                 self.update()
                 self.broadcast()
             # keep the process alive
