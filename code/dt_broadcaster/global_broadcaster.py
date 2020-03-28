@@ -14,7 +14,7 @@ class GlobalBroadcaster(DTProcess):
     forget_location_after_mins = 60
     geolocation_timeout_secs = 5.0
     broadcast_period_secs = 1.0 * 60.0
-    hearthbeat_hz = 1.0
+    heartbeat_hz = 1.0
     protocol = "https"
     host = "dashboard.duckietown.org"
     api_version = "1.0"
@@ -62,4 +62,4 @@ class GlobalBroadcaster(DTProcess):
                 self.update()
                 self.broadcast()
             # keep the process alive
-            time.sleep(1.0 / self.hearthbeat_hz)
+            time.sleep(1.0 / self.heartbeat_hz)
