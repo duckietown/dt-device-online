@@ -13,7 +13,7 @@ dt-launchfile-init
 # NOTE: Use `dt-exec COMMAND` to run the main process (blocking process)
 
 # launching app
-dt-exec python3 -m dt_broadcaster.main
+dt-exec python3 -m online.main
 
 
 # ----------------------------------------------------------------------------

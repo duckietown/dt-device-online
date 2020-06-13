@@ -2,35 +2,31 @@ import os
 import time
 import requests
 from dt_class_utils import DTProcess
-from dt_avahi_utils import enable_service, disable_service
+from dt_service_utils import DTService
 
 
 class GlobalBroadcaster(DTProcess):
 
-    token = "null"
-    geodata = None
-    location_age_secs = 0.0
-    location_last_update = 0.0
     forget_location_after_mins = 60
     geolocation_timeout_secs = 5.0
+    online_check_period_secs = 1.0 * 20.0
     broadcast_period_secs = 1.0 * 60.0
     heartbeat_hz = 1.0
-    protocol = "https"
-    host = "dashboard.duckietown.org"
-    api_version = "1.0"
-    uri = "web-api/{api_version}/{service}/{action}?{qs}"
     geolocation_app = "https://freegeoip.app/json/"
     token_file = '/secrets/tokens/dt1'
 
     def __init__(self):
         DTProcess.__init__(self)
         # update
+        self.token = "null"
+        self.geodata = None
         self.last_broadcast = 0.0
-        self.location_last_update = time.time()
+        self.last_online_check = 0.0
+        self.online = DTService('ONLINE', paused=True)
 
     def update(self):
         # read dt-token
-        if os.path.exists(self.token_file):
+        if (self.token is None) and os.path.exists(self.token_file):
             with open(self.token_file) as fin:
                 self.token = fin.read().strip()
         # perform geo-localization
@@ -38,28 +34,33 @@ class GlobalBroadcaster(DTProcess):
             r = requests.get(self.geolocation_app, timeout=self.geolocation_timeout_secs)
             if r.status_code == 200:
                 self.geodata = r.text.strip()
-                self.location_last_update = time.time()
+                self.last_online_check = time.time()
                 # we were able to contact the remote API, the device is online
-                enable_service("dt.online")
+                self.online.yes()
             else:
                 # we were NOT able to contact the remote API, the device is offline
-                disable_service("dt.online")
-        except:
-            disable_service("dt.online")
-        self.location_age_secs = time.time() - self.location_last_update
+                self.online.no()
+        except requests.exceptions.RequestException:
+            # something went wrong, let's assume that the device is offline
+            self.online.no()
         # forget location
-        if self.location_age_secs >= self.forget_location_after_mins * 60:
+        location_age_secs = time.time() - self.last_online_check
+        if location_age_secs >= self.forget_location_after_mins * 60:
             self.geodata = None
 
     def broadcast(self):
         if self.geodata:
+            #TODO: this is where we transmit the data to the server
             print(self.geodata)
         self.last_broadcast = time.time()
 
     def start(self):
-        while not self.is_shutdown:
-            if (time.time() - self.last_broadcast) > self.broadcast_period_secs:
+        while not self.is_shutdown():
+            # update location and opportunistically check if online
+            if (time.time() - self.last_online_check) > self.online_check_period_secs:
                 self.update()
+            # broadcast geolocation to main server
+            if (time.time() - self.last_broadcast) > self.broadcast_period_secs:
                 self.broadcast()
             # keep the process alive
             time.sleep(1.0 / self.heartbeat_hz)
