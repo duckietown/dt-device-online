@@ -1,24 +1,23 @@
 #!/bin/bash
 
-set -e
 source /environment.sh
 
 # initialize launch file
-dt_launchfile_init
+dt-launchfile-init
 
 # YOUR CODE BELOW THIS LINE
 # ----------------------------------------------------------------------------
 
 
 # NOTE: Use the variable CODE_DIR to know the absolute path to your code
-# NOTE: Use `dt_exec COMMAND` to run the main process (blocking process)
+# NOTE: Use `dt-exec COMMAND` to run the main process (blocking process)
 
 # launching app
-dt_exec python3 -m "dt_broadcaster.main"
+dt-exec python3 -m online.main
 
 
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
 
-# terminate launch file
-dt_launchfile_terminate
+# wait for app to end
+dt-launchfile-join
