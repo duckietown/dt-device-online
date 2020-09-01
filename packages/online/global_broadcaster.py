@@ -51,7 +51,7 @@ class GlobalBroadcaster(DTProcess):
     def broadcast(self):
         if self.geodata:
             #TODO: this is where we transmit the data to the server
-            print(self.geodata)
+            print((self.geodata))
         self.last_broadcast = time.time()
 
     def start(self):
