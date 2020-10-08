@@ -3,6 +3,8 @@ import time
 from threading import Thread
 
 import dt_data_api
+from dt_authentication import DuckietownToken
+
 from dt_class_utils import DTProcess
 from dt_device_utils import get_device_id
 from dt_device_utils.device import get_device_hostname
@@ -27,6 +29,7 @@ class AutoBackupWorker(Thread):
             # no token? nothing to do
             app.logger.warning('No secret token dt1 found. Cannot backup device.')
             return
+        user_id = DuckietownToken.from_string(token).uid
         # read the permissions
         granted = permission_granted('allow_push_config_data')
         if not granted:
@@ -68,7 +71,7 @@ class AutoBackupWorker(Thread):
                     continue
                 left_to_process += 1
                 # try uploading
-                remote_filepath = REMOTE_BACKUP_LOCATION(device_id, local_filepath)
+                remote_filepath = REMOTE_BACKUP_LOCATION(user_id, device_id, local_filepath)
                 handler = storage.upload(local_filepath, remote_filepath)
                 handler.join()
                 if handler.status == dt_data_api.TransferStatus.FINISHED:
