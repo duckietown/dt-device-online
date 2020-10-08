@@ -1,11 +1,10 @@
-import os
 import time
 import requests
 from dt_class_utils import DTProcess
 from dt_service_utils import DTService
 
 
-class GlobalBroadcaster(DTProcess):
+class GlobalBroadcaster:
 
     forget_location_after_mins = 60
     geolocation_timeout_secs = 5.0
@@ -13,22 +12,14 @@ class GlobalBroadcaster(DTProcess):
     broadcast_period_secs = 1.0 * 60.0
     heartbeat_hz = 1.0
     geolocation_app = "https://freegeoip.app/json/"
-    token_file = '/secrets/tokens/dt1'
 
     def __init__(self):
-        DTProcess.__init__(self)
-        # update
-        self.token = "null"
         self.geodata = None
         self.last_broadcast = 0.0
         self.last_online_check = 0.0
         self.online = DTService('ONLINE', paused=True)
 
     def update(self):
-        # read dt-token
-        if (self.token is None) and os.path.exists(self.token_file):
-            with open(self.token_file) as fin:
-                self.token = fin.read().strip()
         # perform geo-localization
         try:
             r = requests.get(self.geolocation_app, timeout=self.geolocation_timeout_secs)
@@ -55,7 +46,7 @@ class GlobalBroadcaster(DTProcess):
         self.last_broadcast = time.time()
 
     def start(self):
-        while not self.is_shutdown():
+        while not DTProcess.get_instance().is_shutdown():
             # update location and opportunistically check if online
             if (time.time() - self.last_online_check) > self.online_check_period_secs:
                 self.update()
