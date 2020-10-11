@@ -6,8 +6,7 @@ import dt_data_api
 from dt_authentication import DuckietownToken
 
 from dt_class_utils import DTProcess
-from dt_device_utils import get_device_id
-from dt_device_utils.device import get_device_hostname
+from dt_device_utils import get_device_id, get_device_hostname
 from dt_permissions_utils import permission_granted
 from dt_secrets_utils import get_secret
 
