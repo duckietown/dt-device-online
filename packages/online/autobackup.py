@@ -10,7 +10,10 @@ from dt_device_utils import get_device_id, get_device_hostname
 from dt_permissions_utils import permission_granted
 from dt_secrets_utils import get_secret
 
-from .constants import FILES_TO_BACKUP, REMOTE_BACKUP_LOCATION, BACKUP_BUCKET_NAME, \
+from .constants import \
+    FILES_TO_BACKUP, \
+    REMOTE_BACKUP_LOCATION, \
+    BACKUP_BUCKET_NAME, \
     DELAY_BACKUP_AFTER_START_SECS
 
 
