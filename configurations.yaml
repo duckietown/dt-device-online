@@ -7,5 +7,7 @@ configurations:
     volumes:
       - /data:/data
       - /secrets:/secrets
+      # docker socket
+      - /var/run/docker.sock:/var/run/docker.sock
       # avahi socket
       - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
