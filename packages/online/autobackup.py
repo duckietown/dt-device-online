@@ -21,6 +21,13 @@ class AutoBackupWorker(Thread):
 
     def __init__(self):
         super().__init__()
+        self._shutdown = False
+
+    def is_shutdown(self) -> bool:
+        return self._shutdown
+
+    def shutdown(self):
+        self._shutdown = True
 
     def run(self):
         app = DTProcess.get_instance()
@@ -56,13 +63,16 @@ class AutoBackupWorker(Thread):
         client = dt_data_api.DataClient(token)
         storage = client.storage(BACKUP_BUCKET_NAME)
         # try to upload the robot configuration
-        while not app.is_shutdown():
+        while not self.is_shutdown():
             left_to_process = 0
-            time.sleep(DELAY_BACKUP_AFTER_START_SECS)
+            # wait for some time before backing up
+            if app.uptime() <= DELAY_BACKUP_AFTER_START_SECS:
+                time.sleep(1)
+                continue
             # go through the list of files to upload
             for local_filepath in to_upload:
                 # make sure the app is still running
-                if app.is_shutdown():
+                if self.is_shutdown():
                     return
                 # make sure the file hasn't been uploaded or blacklisted
                 if local_filepath in uploaded or local_filepath in missing:
