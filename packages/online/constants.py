@@ -14,11 +14,12 @@ DELAY_BACKUP_AFTER_START_SECS = 4
 
 
 # Statistics collection for Duckietown
-STATS_API_HOSTNAME = "stats.duckietown.org"
-STATS_API_VERSION = "v1"
-STATS_API_VERB = "POST"
-STATS_API_BASE_URL = "https://{STATS_API_HOSTNAME}/{STATS_API_VERSION}"
-STATS_API_URL = STATS_API_BASE_URL + "/{category}?"
+STATS_API_PROTOCOL = os.environ.get("STATS_SERVER_PROTOCOL", default="https")
+STATS_API_HOSTNAME = os.environ.get("STATS_SERVER_HOST", default="stats.duckietown.org")
+STATS_API_PORT = os.environ.get("STATS_SERVER_PORT", default=80)
+STATS_API_VERSION = os.environ.get("STATS_SERVER_VERSION", default="v1")
+STATS_API_BASE_URL = f"{STATS_API_PROTOCOL}://{STATS_API_HOSTNAME}:{STATS_API_PORT}/{STATS_API_VERSION}"
+STATS_API_URL = STATS_API_BASE_URL + "/{category}/{key}?device={device}&stamp={stamp}"
 STATS_PUBLISHER_PERIOD = 8
 
 STATS_CATEGORY_TO_DIR = {

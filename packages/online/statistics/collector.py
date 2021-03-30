@@ -2,11 +2,12 @@ import copy
 import json
 import os
 import time
+import requests
+import dataclasses
 from enum import Enum
 from threading import Thread, Semaphore
 from typing import List
 
-import dataclasses
 import dt_authentication
 from dt_authentication import DuckietownToken
 
@@ -32,7 +33,8 @@ from .providers.usage.WirelessStatusProvider import WirelessStatusProvider
 from ..constants import \
     STATS_CATEGORY_TO_DIR, \
     STATS_PUBLISHER_PERIOD, \
-    FREQUENCY
+    FREQUENCY, \
+    STATS_API_URL
 
 from .providers import StatisticsProvider
 from .providers.event import glob_event_providers
@@ -54,11 +56,6 @@ class StatisticsPoint:
     stamp: float
     payload: dict
     provider: StatisticsProvider
-    # TODO: the API will add
-    # - uid
-    # - stamp_received
-    # - api (version)
-    # - IP
 
     def __str__(self):
         return json.dumps({
@@ -131,18 +128,6 @@ class StatisticsWorker(Thread):
 
     def run(self):
         app = DTProcess.get_instance()
-        # (try to) read the token
-        try:
-            token = get_secret('tokens/dt1')
-            DuckietownToken.from_string(token)
-        except FileNotFoundError:
-            # no token? nothing to do
-            app.logger.warning('No secret token dt1 found. Cannot collect statistics.')
-            return
-        except dt_authentication.InvalidToken as e:
-            # no token? nothing to do
-            app.logger.warning(f'{str(e)}. Cannot collect statistics.')
-            return
         # (try to) read the device ID
         try:
             device_id = get_device_id()
@@ -183,7 +168,6 @@ class StatisticsWorker(Thread):
                         to_remove.append(provider)
             # remove providers
             self._providers = list(filter(lambda p: p not in to_remove, self._providers))
-            #
 
 
 class StatisticsUploader(Thread):
@@ -211,6 +195,18 @@ class StatisticsUploader(Thread):
         if not granted:
             app.logger.warning("Permission 'allow_push_stats_data' not granted. Won't share data.")
             return
+        # (try to) read the token
+        try:
+            token = get_secret('tokens/dt1')
+            DuckietownToken.from_string(token)
+        except FileNotFoundError:
+            # no token? nothing to do
+            app.logger.warning('No secret token dt1 found. Cannot share statistics.')
+            return
+        except dt_authentication.InvalidToken as e:
+            # no token? nothing to do
+            app.logger.warning(f'{str(e)}. Cannot share statistics.')
+            return
         # if we are it means that the user agreed to share their data
         counter = 0
         while not self.is_shutdown():
@@ -220,14 +216,25 @@ class StatisticsUploader(Thread):
                     queue = copy.copy(self._queue)
                 # publish
                 for point in queue:
-                    print("PUBLISHING:")
-                    print(point)
-                    # cleanup provider resource
-                    point.provider.cleanup()
-                    # mark is as DONE
-                    done.append(point)
-                    print("-" * 30)
-                    print()
+                    # publish
+                    url = STATS_API_URL.format(
+                        category=point.category.value,
+                        key=point.key,
+                        device=point.device,
+                        # the server is expecting milliseconds, we worked with seconds float so far
+                        stamp=int(point.stamp * 1000)
+                    )
+                    res = requests.post(url, json=point.payload,
+                                        headers={"X-Duckietown-Token": token})
+                    try:
+                        res = res.json()
+                    except Exception:
+                        continue
+                    if res['message'] == 'ok':
+                        # cleanup provider resource
+                        point.provider.cleanup()
+                        # mark is as DONE
+                        done.append(point)
                 # remove correctly uploaded points from queue
                 with self._lock:
                     self._queue = list(filter(lambda p: p not in done, self._queue))

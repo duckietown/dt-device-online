@@ -13,8 +13,7 @@ class DeviceOnlineApp(DTProcess):
         self._backup_worker = AutoBackupWorker()
         self._statistics_worker = StatisticsWorker()
         # start backup worker
-        # TODO: re-enable
-        # self._backup_worker.start()
+        self._backup_worker.start()
         # start statistics collector worker
         self._statistics_worker.start()
         # register shutdown
