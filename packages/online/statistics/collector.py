@@ -227,10 +227,12 @@ class StatisticsUploader(Thread):
                     res = requests.post(url, json=point.payload,
                                         headers={"X-Duckietown-Token": token})
                     try:
+                        assert res.status_code == 200
                         res = res.json()
-                    except Exception:
+                        assert 'message' in res
+                    except (Exception, AssertionError):
                         continue
-                    if res['message'] == 'ok':
+                    if res['message'] == 'OK':
                         # cleanup provider resource
                         point.provider.cleanup()
                         # mark is as DONE
