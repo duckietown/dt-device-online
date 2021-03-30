@@ -16,6 +16,4 @@ class GenericFileUsageProvider(FileStatsProvider):
         return self._stamp, self._content
 
     def cleanup(self):
-        print(f"Deleting '{self._filepath}'")
-        # TODO: re-enable
-        # os.remove(self._filepath)
+        os.remove(self._filepath)

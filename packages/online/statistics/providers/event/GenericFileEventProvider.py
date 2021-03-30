@@ -19,6 +19,4 @@ class GenericFileEventProvider(FileStatsProvider):
         return self._stamp, data
 
     def cleanup(self):
-        print(f"Deleting '{self._filepath}'")
-        # TODO: re-enable
-        # os.remove(self._filepath)
+        os.remove(self._filepath)
