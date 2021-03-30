@@ -10,17 +10,18 @@ FILES_TO_BACKUP = [
     '/data/config/calibrations/camera_intrinsic/{hostname}.yaml',
     '/data/config/calibrations/kinematics/{hostname}.yaml',
 ]
-DELAY_BACKUP_AFTER_START_SECS = 4
+DELAY_BACKUP_AFTER_START_SECS = 5
 
 
 # Statistics collection for Duckietown
+PROTOCOL_PORTS = {"http": 80, "https": 443}
 STATS_API_PROTOCOL = os.environ.get("STATS_SERVER_PROTOCOL", default="https")
 STATS_API_HOSTNAME = os.environ.get("STATS_SERVER_HOST", default="stats.duckietown.org")
-STATS_API_PORT = os.environ.get("STATS_SERVER_PORT", default=80)
+STATS_API_PORT = os.environ.get("STATS_SERVER_PORT", default=PROTOCOL_PORTS[STATS_API_PROTOCOL])
 STATS_API_VERSION = os.environ.get("STATS_SERVER_VERSION", default="v1")
 STATS_API_BASE_URL = f"{STATS_API_PROTOCOL}://{STATS_API_HOSTNAME}:{STATS_API_PORT}/{STATS_API_VERSION}"
 STATS_API_URL = STATS_API_BASE_URL + "/{category}/{key}?device={device}&stamp={stamp}"
-STATS_PUBLISHER_PERIOD = 8
+STATS_PUBLISHER_PERIOD_SECS = 30
 
 STATS_CATEGORY_TO_DIR = {
     "event": "/data/stats/events",

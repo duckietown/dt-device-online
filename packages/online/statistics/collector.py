@@ -32,7 +32,7 @@ from .providers.usage.WirelessStatusProvider import WirelessStatusProvider
 
 from ..constants import \
     STATS_CATEGORY_TO_DIR, \
-    STATS_PUBLISHER_PERIOD, \
+    STATS_PUBLISHER_PERIOD_SECS, \
     FREQUENCY, \
     STATS_API_URL
 
@@ -77,7 +77,7 @@ class StatisticsWorker(Thread):
         self._shutdown = False
         self._providers: List[StatisticsProvider] = []
         self._outbox = StatisticsUploader()
-        self._timer = DTReminder(frequency=FREQUENCY.EVERY_10_SECONDS)
+        self._timer = DTReminder(frequency=FREQUENCY.EVERY_MINUTE)
         # register providers
         # - stats/events/ dir
         self._providers.extend(glob_event_providers(events_dir, "*.json"))
@@ -210,7 +210,7 @@ class StatisticsUploader(Thread):
         # if we are it means that the user agreed to share their data
         counter = 0
         while not self.is_shutdown():
-            if counter % STATS_PUBLISHER_PERIOD == 0:
+            if counter % STATS_PUBLISHER_PERIOD_SECS == 0:
                 done = []
                 with self._lock:
                     queue = copy.copy(self._queue)
