@@ -34,7 +34,8 @@ from ..constants import \
     STATS_CATEGORY_TO_DIR, \
     STATS_PUBLISHER_PERIOD_SECS, \
     FREQUENCY, \
-    STATS_API_URL
+    STATS_API_URL, \
+    STATS_BOOT_ID_FILE
 
 from .providers import StatisticsProvider
 from .providers.event import glob_event_providers
@@ -87,9 +88,9 @@ class StatisticsWorker(Thread):
         self._providers.extend(glob_usage_providers(
             os.path.join(usage_dir, "init_sd_card"), "*.json", "init_sd_card"))
         # - docker/ps
-        self._providers.append(DockerPSProvider(FREQUENCY.EVERY_1_HOUR))
+        self._providers.append(DockerPSProvider(FREQUENCY.EVERY_MINUTE))
         # - docker/images
-        self._providers.append(DockerImagesProvider(FREQUENCY.EVERY_2_HOURS))
+        self._providers.append(DockerImagesProvider(FREQUENCY.EVERY_MINUTE))
         # - uptime
         self._providers.append(UptimeProvider(FREQUENCY.EVERY_30_MINUTES))
         # - network/configuration
@@ -176,6 +177,10 @@ class StatisticsUploader(Thread):
         super(StatisticsUploader, self).__init__()
         self._shutdown = False
         self._queue: List[StatisticsPoint] = []
+        # read boot ID
+        with open(STATS_BOOT_ID_FILE, 'rt') as fin:
+            self._boot_id = fin.read().strip()
+        # create resource lock for the queue
         self._lock = Semaphore(1)
 
     def add(self, point: StatisticsPoint):
@@ -211,6 +216,7 @@ class StatisticsUploader(Thread):
         counter = 0
         while not self.is_shutdown():
             if counter % STATS_PUBLISHER_PERIOD_SECS == 0:
+                counter = 1
                 done = []
                 with self._lock:
                     queue = copy.copy(self._queue)
@@ -221,22 +227,24 @@ class StatisticsUploader(Thread):
                         category=point.category.value,
                         key=point.key,
                         device=point.device,
+                        boot_id=self._boot_id,
                         # the server is expecting milliseconds, we worked with seconds float so far
                         stamp=int(point.stamp * 1000)
                     )
+                    print(url)
                     res = requests.post(url, json=point.payload,
                                         headers={"X-Duckietown-Token": token})
                     try:
                         assert res.status_code == 200
                         res = res.json()
                         assert 'message' in res
-                    except (Exception, AssertionError):
-                        continue
-                    if res['message'] == 'OK':
-                        # cleanup provider resource
-                        point.provider.cleanup()
-                        # mark is as DONE
-                        done.append(point)
+                        if res['message'] == 'OK':
+                            # cleanup provider resource
+                            point.provider.cleanup()
+                            # mark is as DONE
+                            done.append(point)
+                    except (Exception, AssertionError) as e:
+                        app.logger.debug(str(e))
                 # remove correctly uploaded points from queue
                 with self._lock:
                     self._queue = list(filter(lambda p: p not in done, self._queue))

@@ -96,6 +96,7 @@ class FileStatsProvider(StatisticsProvider):
 
     @property
     def istime(self) -> bool:
+        # no need to check `super()`, we know it is always True given that `frequency` is 0
         return self._content is not None and self._key is not None
 
     @abc.abstractmethod
