@@ -231,7 +231,6 @@ class StatisticsUploader(Thread):
                         # the server is expecting milliseconds, we worked with seconds float so far
                         stamp=int(point.stamp * 1000)
                     )
-                    print(url)
                     res = requests.post(url, json=point.payload,
                                         headers={"X-Duckietown-Token": token})
                     try:
