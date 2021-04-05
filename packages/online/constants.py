@@ -45,7 +45,7 @@ if STATS_API_VERSION != DEFAULT_STATS_API_VERSION:
 STATS_API_BASE_URL = f"{STATS_API_PROTOCOL}://{STATS_API_HOSTNAME}:{STATS_API_PORT}/{STATS_API_VERSION}"
 STATS_API_URL = STATS_API_BASE_URL + "/{category}/{key}?" \
                                      "device={device}&boot_id={boot_id}&stamp={stamp}"
-STATS_PUBLISHER_PERIOD_SECS = 5
+STATS_PUBLISHER_PERIOD_SECS = 30
 STATS_BOOT_ID_FILE = "/proc/sys/kernel/random/boot_id"
 
 STATS_CATEGORY_TO_DIR = {
