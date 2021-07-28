@@ -1,1 +1,6 @@
 # LIST YOUR APT PACKAGES HERE
+# this is for `lsusb`
+usbutils
+
+# this is for `iwlib`
+libiw-dev

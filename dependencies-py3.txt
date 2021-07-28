@@ -1,2 +1,7 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
-requests
+dt-data-api-daffy>=0.1.7
+
+docker
+
+# this is for wifi info
+iwlib
