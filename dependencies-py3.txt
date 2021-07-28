@@ -1,5 +1,5 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
-dt-data-api-daffy>=0.1.7
+dt-data-api-ente>=0.1.7
 
 docker
 
