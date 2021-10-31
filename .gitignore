@@ -1,2 +1,5 @@
 docs/build
 *pyc
+
+# otherwise CI thinks index not clean
+*.resolved
