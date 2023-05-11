@@ -82,9 +82,10 @@ class StatisticsWorker(Thread):
         # register providers
         # - stats/events/ dir
         self._providers.extend(glob_event_providers(events_dir, "*.json"))
-        # - stats/usage/ dirs
+        # - stats/usage/disk_image/ dir
         self._providers.extend(glob_usage_providers(
             os.path.join(usage_dir, "disk_image"), "*.json", "disk_image"))
+        # - stats/usage/init_sd_card/ dir
         self._providers.extend(glob_usage_providers(
             os.path.join(usage_dir, "init_sd_card"), "*.json", "init_sd_card"))
         # - docker/ps
