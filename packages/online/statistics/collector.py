@@ -237,12 +237,20 @@ class StatisticsUploader(Thread):
                     try:
                         assert res.status_code == 200
                         res = res.json()
-                        assert 'message' in res
-                        if res['message'] == 'OK':
+                        assert 'success' in res
+                        if res['success']:
                             # cleanup provider resource
                             point.provider.cleanup()
-                            # mark is as DONE
+                            # mark it as DONE
                             done.append(point)
+                        else:
+                            if res.get("code", 0) == 409:
+                                # this data point already exists
+                                # cleanup provider resource
+                                point.provider.cleanup()
+                                # mark it as DONE
+                                done.append(point)
+
                     except (Exception, AssertionError) as e:
                         app.logger.debug(str(e))
                 # remove correctly uploaded points from queue
