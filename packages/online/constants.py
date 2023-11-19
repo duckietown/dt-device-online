@@ -17,8 +17,10 @@ DELAY_BACKUP_AFTER_START_SECS = 5
 PROTOCOL_PORTS = {"http": 80, "https": 443}
 # - defaults
 DEFAULT_STATS_API_PROTOCOL = "https"
-DEFAULT_STATS_API_HOSTNAME = "stats.duckietown.org"
-DEFAULT_STATS_API_VERSION = "v2"
+DEFAULT_STATS_API_HOSTNAME = "hub.duckietown.com"
+DEFAULT_STATS_API_VERSION = "v0"
+DEFAULT_STATS_API_BASE_URL = "api"
+DEFAULT_STATS_API_LOCATION = "statistics/"
 # - read from env
 #   + protocol
 STATS_API_PROTOCOL = os.environ.get("STATS_SERVER_PROTOCOL", default=DEFAULT_STATS_API_PROTOCOL)
@@ -37,15 +39,25 @@ if STATS_API_PORT != DEFAULT_STATS_API_PORT:
     print(f"NOTE: Using custom STATS_API_PORT={STATS_API_PORT}\n"
           f"      (default is {DEFAULT_STATS_API_PORT})")
 #   + version
-STATS_API_VERSION = os.environ.get("STATS_SERVER_VERSION", default="v2")
+STATS_API_VERSION = os.environ.get("STATS_SERVER_VERSION", default=DEFAULT_STATS_API_VERSION)
 if STATS_API_VERSION != DEFAULT_STATS_API_VERSION:
     print(f"NOTE: Using custom STATS_API_VERSION={STATS_API_VERSION}\n"
           f"      (default is {DEFAULT_STATS_API_VERSION})")
+#   + base url
+STATS_API_BASE_URL = os.environ.get("STATS_SERVER_PATH", default=DEFAULT_STATS_API_BASE_URL)
+if STATS_API_BASE_URL != DEFAULT_STATS_API_BASE_URL:
+    print(f"NOTE: Using custom STATS_API_BASE_URL={STATS_API_BASE_URL}\n"
+          f"      (default is {DEFAULT_STATS_API_BASE_URL})")
+#   + location
+STATS_API_LOCATION = os.environ.get("STATS_SERVER_PATH", default=DEFAULT_STATS_API_LOCATION)
+if STATS_API_LOCATION != DEFAULT_STATS_API_LOCATION:
+    print(f"NOTE: Using custom STATS_API_LOCATION={STATS_API_LOCATION}\n"
+          f"      (default is {DEFAULT_STATS_API_LOCATION})")
 # compile URL
-STATS_API_BASE_URL = f"{STATS_API_PROTOCOL}://{STATS_API_HOSTNAME}:{STATS_API_PORT}/{STATS_API_VERSION}"
-STATS_API_URL = STATS_API_BASE_URL + "/{category}/{key}?" \
-                                     "device={device}&boot_id={boot_id}&stamp={stamp}"
-STATS_PUBLISHER_PERIOD_SECS = 30
+STATS_API_BASE_URL = f"{STATS_API_PROTOCOL}://{STATS_API_HOSTNAME}:{STATS_API_PORT}/" \
+                     f"{STATS_API_BASE_URL}/{STATS_API_VERSION}/{STATS_API_LOCATION}"
+STATS_API_URL = STATS_API_BASE_URL + "{category}/{key}?device={device}&boot_id={boot_id}&stamp={stamp}"
+STATS_PUBLISHER_PERIOD_SECS = 60
 STATS_BOOT_ID_FILE = "/proc/sys/kernel/random/boot_id"
 
 STATS_CATEGORY_TO_DIR = {

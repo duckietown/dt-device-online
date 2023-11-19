@@ -5,3 +5,5 @@ docker
 
 # this is for wifi info
 iwlib
+
+psutil
