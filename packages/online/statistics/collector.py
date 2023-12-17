@@ -57,6 +57,7 @@ class StatisticsPoint:
     stamp: float
     payload: dict
     provider: StatisticsProvider
+    format: str = "1"
 
     def __str__(self):
         return json.dumps({
@@ -64,6 +65,7 @@ class StatisticsPoint:
             "key": self.key,
             "device": self.device,
             "stamp": self.stamp,
+            "format": self.format,
             "payload": self.payload
         })
 
@@ -81,43 +83,79 @@ class StatisticsWorker(Thread):
         self._timer = DTReminder(frequency=FREQUENCY.EVERY_MINUTE)
         # register providers
         # - stats/events/ dir
+        print("Initializing provider 'stats/events'...")
         self._providers.extend(glob_event_providers(events_dir, "*.json"))
+        print("Provider 'stats/events' initialized!")
         # - stats/usage/disk_image/ dir
+        print("Initializing provider 'stats/usage/disk_image'...")
         self._providers.extend(glob_usage_providers(
             os.path.join(usage_dir, "disk_image"), "*.json", "disk_image"))
+        print("Provider 'stats/usage/disk_image' initialized!")
         # - stats/usage/init_sd_card/ dir
+        print("Initializing provider 'stats/usage/init_sd_card'...")
         self._providers.extend(glob_usage_providers(
             os.path.join(usage_dir, "init_sd_card"), "*.json", "init_sd_card"))
+        print("Provider 'stats/usage/init_sd_card' initialized!")
         # - docker/ps
+        print("Initializing provider 'DockerPSProvider'...")
         self._providers.append(DockerPSProvider(FREQUENCY.EVERY_MINUTE))
+        print("Provider 'DockerPSProvider' initialized!")
         # - docker/images
+        print("Initializing provider 'DockerImagesProvider'...")
         self._providers.append(DockerImagesProvider(FREQUENCY.EVERY_MINUTE))
+        print("Provider 'DockerImagesProvider' initialized!")
         # - uptime
+        print("Initializing provider 'UptimeProvider'...")
         self._providers.append(UptimeProvider(FREQUENCY.EVERY_30_MINUTES))
+        print("Provider 'UptimeProvider' initialized!")
         # - network/configuration
+        print("Initializing provider 'NetworkConfigurationProvider'...")
         self._providers.append(NetworkConfigurationProvider(FREQUENCY.EVERY_1_HOUR))
+        print("Provider 'NetworkConfigurationProvider' initialized!")
         # - ros/graph
+        print("Initializing provider 'ROSGraphProvider'...")
         self._providers.append(ROSGraphProvider(FREQUENCY.EVERY_30_MINUTES))
+        print("Provider 'ROSGraphProvider' initialized!")
         # - health
+        print("Initializing provider 'HealthProvider'...")
         self._providers.append(HealthProvider(FREQUENCY.EVERY_30_MINUTES))
+        print("Provider 'HealthProvider' initialized!")
         # - network/public_ip
+        print("Initializing provider 'PublicIPProvider'...")
         self._providers.append(PublicIPProvider(FREQUENCY.ONESHOT))
+        print("Provider 'PublicIPProvider' initialized!")
         # - geolocation
+        print("Initializing provider 'GeolocationProvider'...")
         self._providers.append(GeolocationProvider(FREQUENCY.ONESHOT))
+        print("Provider 'GeolocationProvider' initialized!")
         # - battery/history
+        print("Initializing provider 'BatteryHistoryProvider'...")
         self._providers.append(BatteryHistoryProvider(FREQUENCY.EVERY_2_HOURS))
+        print("Provider 'BatteryHistoryProvider' initialized!")
         # - battery/info
+        print("Initializing provider 'BatteryInfoProvider'...")
         self._providers.append(BatteryInfoProvider(FREQUENCY.ONESHOT))
+        print("Provider 'BatteryInfoProvider' initialized!")
         # - lsusb
+        print("Initializing provider 'LSUSBProvider'...")
         self._providers.append(LSUSBProvider(FREQUENCY.EVERY_2_HOURS))
+        print("Provider 'LSUSBProvider' initialized!")
         # - wireless/status
+        print("Initializing provider 'WirelessStatusProvider'...")
         self._providers.append(WirelessStatusProvider(FREQUENCY.EVERY_30_MINUTES))
+        print("Provider 'WirelessStatusProvider' initialized!")
         # - robot/hostname
+        print("Initializing provider 'RobotHostnameProvider'...")
         self._providers.append(RobotHostnameProvider())
+        print("Provider 'RobotHostnameProvider' initialized!")
         # - robot/type
+        print("Initializing provider 'RobotTypeProvider'...")
         self._providers.append(RobotTypeProvider())
+        print("Provider 'RobotTypeProvider' initialized!")
         # - robot/configuration
+        print("Initializing provider 'RobotConfigurationProvider'...")
         self._providers.append(RobotConfigurationProvider())
+        print("Provider 'RobotConfigurationProvider' initialized!")
         # launch outbox
         self._outbox.start()
 
@@ -220,20 +258,25 @@ class StatisticsUploader(Thread):
                 counter = 1
                 done = []
                 with self._lock:
-                    queue = copy.copy(self._queue)
+                    queue: List[StatisticsPoint] = copy.copy(self._queue)
                 # publish
                 for point in queue:
                     # publish
-                    url = STATS_API_URL.format(
-                        category=point.category.value,
-                        key=point.key,
-                        device=point.device,
-                        boot_id=self._boot_id,
+                    url = STATS_API_URL.format(category=point.category.value)
+                    # data to send to the server
+                    data: dict = {
+                        "key": point.key,
+                        "device": point.device,
+                        "boot_id": self._boot_id,
                         # the server is expecting milliseconds, we worked with seconds float so far
-                        stamp=int(point.stamp * 1000)
-                    )
-                    res = requests.post(url, json=point.payload,
-                                        headers={"X-Duckietown-Token": token})
+                        "stamp": int(point.stamp * 1000),
+                        "format": point.format,
+                        "payload": point.payload,
+                    }
+                    # authentication data
+                    headers: dict = {"Authorization": f"Token {token}"}
+                    # make request
+                    res = requests.post(url, json=data, headers=headers)
                     try:
                         assert res.status_code == 200
                         res = res.json()
@@ -250,6 +293,8 @@ class StatisticsUploader(Thread):
                                 point.provider.cleanup()
                                 # mark it as DONE
                                 done.append(point)
+                            else:
+                                app.logger.debug(str(res))
 
                     except (Exception, AssertionError) as e:
                         app.logger.debug(str(e))

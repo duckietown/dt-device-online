@@ -18,9 +18,9 @@ PROTOCOL_PORTS = {"http": 80, "https": 443}
 # - defaults
 DEFAULT_STATS_API_PROTOCOL = "https"
 DEFAULT_STATS_API_HOSTNAME = "hub.duckietown.com"
-DEFAULT_STATS_API_VERSION = "v0"
+DEFAULT_STATS_API_VERSION = "v1"
 DEFAULT_STATS_API_BASE_URL = "api"
-DEFAULT_STATS_API_LOCATION = "statistics/"
+DEFAULT_STATS_API_LOCATION = "statistics/device/"
 # - read from env
 #   + protocol
 STATS_API_PROTOCOL = os.environ.get("STATS_SERVER_PROTOCOL", default=DEFAULT_STATS_API_PROTOCOL)
@@ -56,8 +56,8 @@ if STATS_API_LOCATION != DEFAULT_STATS_API_LOCATION:
 # compile URL
 STATS_API_BASE_URL = f"{STATS_API_PROTOCOL}://{STATS_API_HOSTNAME}:{STATS_API_PORT}/" \
                      f"{STATS_API_BASE_URL}/{STATS_API_VERSION}/{STATS_API_LOCATION}"
-STATS_API_URL = STATS_API_BASE_URL + "{category}/{key}?device={device}&boot_id={boot_id}&stamp={stamp}"
-STATS_PUBLISHER_PERIOD_SECS = 60
+STATS_API_URL = STATS_API_BASE_URL + "{category}"
+STATS_PUBLISHER_PERIOD_SECS = 5
 STATS_BOOT_ID_FILE = "/proc/sys/kernel/random/boot_id"
 
 STATS_CATEGORY_TO_DIR = {
