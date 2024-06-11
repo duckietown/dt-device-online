@@ -73,7 +73,7 @@ class StatisticsPoint:
 class StatisticsWorker(Thread):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(daemon=True)
         events_dir = STATS_CATEGORY_TO_DIR["event"]
         usage_dir = STATS_CATEGORY_TO_DIR["usage"]
         # ---
@@ -159,6 +159,7 @@ class StatisticsWorker(Thread):
         # launch outbox
         self._outbox.start()
 
+    @property
     def is_shutdown(self) -> bool:
         return self._shutdown
 
@@ -176,7 +177,7 @@ class StatisticsWorker(Thread):
             app.logger.warning("Could not find the device's unique ID. Cannot share stats.")
             return
         # this process gets data from a bunch of stats providers and places them in the outbox
-        while not app.is_shutdown():
+        while not app.is_shutdown:
             # don't do this constantly
             if not self._timer.is_time():
                 time.sleep(1)
@@ -213,7 +214,7 @@ class StatisticsWorker(Thread):
 class StatisticsUploader(Thread):
 
     def __init__(self):
-        super(StatisticsUploader, self).__init__()
+        super(StatisticsUploader, self).__init__(daemon=True)
         self._shutdown = False
         self._queue: List[StatisticsPoint] = []
         # read boot ID
@@ -226,6 +227,7 @@ class StatisticsUploader(Thread):
         with self._lock:
             self._queue.append(point)
 
+    @property
     def is_shutdown(self) -> bool:
         return self._shutdown
 
@@ -252,10 +254,11 @@ class StatisticsUploader(Thread):
             app.logger.warning(f'{str(e)}. Cannot share statistics.')
             return
         # if we are it means that the user agreed to share their data
-        counter = 0
-        while not self.is_shutdown():
-            if counter % STATS_PUBLISHER_PERIOD_SECS == 0:
-                counter = 1
+        last_push_time: float = 0
+        app.logger.info("Statistics uploader started.")
+        while not self.is_shutdown:
+            if time.time() - last_push_time > STATS_PUBLISHER_PERIOD_SECS:
+                last_push_time = time.time()
                 done = []
                 with self._lock:
                     queue: List[StatisticsPoint] = copy.copy(self._queue)
@@ -276,6 +279,10 @@ class StatisticsUploader(Thread):
                     # authentication data
                     headers: dict = {"Authorization": f"Token {token}"}
                     # make request
+                    app.logger.debug(f"Uploading statistics data point.\n"
+                                     f"\tPOST: {url}\n"
+                                     f"\tDATA: {str(data)}\n"
+                                     f"\tHEADERS: {str(headers)}")
                     res = requests.post(url, json=data, headers=headers)
                     try:
                         assert res.status_code == 200
@@ -303,4 +310,3 @@ class StatisticsUploader(Thread):
                     self._queue = list(filter(lambda p: p not in done, self._queue))
             # ---
             time.sleep(1)
-            counter += 1

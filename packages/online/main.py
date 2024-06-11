@@ -9,7 +9,7 @@ from .autobackup import AutoBackupWorker
 class DeviceOnlineApp(DTProcess):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(name="device-online")
         self._backup_worker = AutoBackupWorker()
         self._statistics_worker = StatisticsWorker()
         # start backup worker
@@ -24,7 +24,7 @@ class DeviceOnlineApp(DTProcess):
         self.register_shutdown_callback(self._backup_worker.shutdown)
         self.register_shutdown_callback(self._statistics_worker.shutdown)
         # keep process alive
-        while not self.is_shutdown():
+        while not self.is_shutdown:
             time.sleep(1)
 
 
