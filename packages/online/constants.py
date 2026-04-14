@@ -77,4 +77,4 @@ class FREQUENCY:
     EVERY_10_MINUTES = 1.0 / (60 * 10)
     EVERY_30_MINUTES = 1.0 / (60 * 30)
     EVERY_1_HOUR = 1.0 / (60 * 60 * 1)
-    EVERY_2_HOURS = 1.0 / (60 * 60 * 1)
+    EVERY_2_HOURS = 1.0 / (60 * 60 * 2)
