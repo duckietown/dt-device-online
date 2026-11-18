@@ -33,6 +33,9 @@ from .providers.usage.WirelessStatusProvider import WirelessStatusProvider
 from ..constants import \
     STATS_CATEGORY_TO_DIR, \
     STATS_PUBLISHER_PERIOD_SECS, \
+    STATS_BATCH_MAX_POINTS, \
+    STATS_BATCH_MAX_AGE_SECS, \
+    STATS_API_BATCH_URL, \
     FREQUENCY, \
     STATS_API_URL, \
     STATS_BOOT_ID_FILE
@@ -234,6 +237,96 @@ class StatisticsUploader(Thread):
     def shutdown(self):
         self._shutdown = True
 
+    def _point_payload(self, point: StatisticsPoint) -> dict:
+        return {
+            "category": f"device/{point.category.value}",
+            "key": point.key,
+            "device": point.device,
+            "boot_id": self._boot_id,
+            # the server is expecting milliseconds, we worked with seconds float so far
+            "stamp": int(point.stamp * 1000),
+            "format": point.format,
+            "payload": point.payload,
+        }
+
+    def _should_flush(self, queue: List[StatisticsPoint], now: float) -> bool:
+        if not queue:
+            return False
+        if len(queue) >= STATS_BATCH_MAX_POINTS:
+            return True
+        oldest = min(point.stamp for point in queue)
+        return (now - oldest) >= STATS_BATCH_MAX_AGE_SECS
+
+    def _upload_batch(self, app, token: str, queue: List[StatisticsPoint]) -> List[StatisticsPoint]:
+        headers = {"Authorization": f"Token {token}"}
+        done = []
+        for offset in range(0, len(queue), STATS_BATCH_MAX_POINTS):
+            chunk = queue[offset:offset + STATS_BATCH_MAX_POINTS]
+            body = {"points": [self._point_payload(point) for point in chunk]}
+            app.logger.debug(
+                f"Uploading statistics batch.\n"
+                f"\tPOST: {STATS_API_BATCH_URL}\n"
+                f"\tPOINTS: {len(chunk)}"
+            )
+            res = requests.post(STATS_API_BATCH_URL, json=body, headers=headers)
+            if res.status_code in (404, 405):
+                # Older Hubs without /statistics/batch/ still accept one-by-one.
+                done.extend(self._upload_individually(app, token, chunk))
+                continue
+            try:
+                assert res.status_code == 200
+                payload = res.json()
+                assert "success" in payload
+                if not payload["success"]:
+                    app.logger.debug(str(payload))
+                    continue
+                results = (payload.get("result") or {}).get("results") or []
+                for index, point in enumerate(chunk):
+                    result = results[index] if index < len(results) else None
+                    if not result:
+                        continue
+                    if result.get("success") or result.get("code") == 409:
+                        point.provider.cleanup()
+                        done.append(point)
+                    else:
+                        app.logger.debug(str(result))
+            except (Exception, AssertionError) as e:
+                app.logger.debug(str(e))
+        return done
+
+    def _upload_individually(self, app, token: str, queue: List[StatisticsPoint]) -> List[StatisticsPoint]:
+        headers = {"Authorization": f"Token {token}"}
+        done = []
+        for point in queue:
+            url = STATS_API_URL.format(category=point.category.value)
+            data = {
+                "key": point.key,
+                "device": point.device,
+                "boot_id": self._boot_id,
+                "stamp": int(point.stamp * 1000),
+                "format": point.format,
+                "payload": point.payload,
+            }
+            app.logger.debug(
+                f"Uploading statistics data point.\n"
+                f"\tPOST: {url}\n"
+                f"\tDATA: {str(data)}\n"
+                f"\tHEADERS: {str(headers)}"
+            )
+            res = requests.post(url, json=data, headers=headers)
+            try:
+                assert res.status_code == 200
+                payload = res.json()
+                assert "success" in payload
+                if payload["success"] or payload.get("code", 0) == 409:
+                    point.provider.cleanup()
+                    done.append(point)
+                else:
+                    app.logger.debug(str(payload))
+            except (Exception, AssertionError) as e:
+                app.logger.debug(str(e))
+        return done
+
     def run(self):
         app = DTProcess.get_instance()
         # read the permissions
@@ -254,59 +347,17 @@ class StatisticsUploader(Thread):
             app.logger.warning(f'{str(e)}. Cannot share statistics.')
             return
         # if we are it means that the user agreed to share their data
-        last_push_time: float = 0
+        last_check_time: float = 0
         app.logger.info("Statistics uploader started.")
         while not self.is_shutdown:
-            if time.time() - last_push_time > STATS_PUBLISHER_PERIOD_SECS:
-                last_push_time = time.time()
-                done = []
+            now = time.time()
+            if now - last_check_time > STATS_PUBLISHER_PERIOD_SECS:
+                last_check_time = now
                 with self._lock:
                     queue: List[StatisticsPoint] = copy.copy(self._queue)
-                # publish
-                for point in queue:
-                    # publish
-                    url = STATS_API_URL.format(category=point.category.value)
-                    # data to send to the server
-                    data: dict = {
-                        "key": point.key,
-                        "device": point.device,
-                        "boot_id": self._boot_id,
-                        # the server is expecting milliseconds, we worked with seconds float so far
-                        "stamp": int(point.stamp * 1000),
-                        "format": point.format,
-                        "payload": point.payload,
-                    }
-                    # authentication data
-                    headers: dict = {"Authorization": f"Token {token}"}
-                    # make request
-                    app.logger.debug(f"Uploading statistics data point.\n"
-                                     f"\tPOST: {url}\n"
-                                     f"\tDATA: {str(data)}\n"
-                                     f"\tHEADERS: {str(headers)}")
-                    res = requests.post(url, json=data, headers=headers)
-                    try:
-                        assert res.status_code == 200
-                        res = res.json()
-                        assert 'success' in res
-                        if res['success']:
-                            # cleanup provider resource
-                            point.provider.cleanup()
-                            # mark it as DONE
-                            done.append(point)
-                        else:
-                            if res.get("code", 0) == 409:
-                                # this data point already exists
-                                # cleanup provider resource
-                                point.provider.cleanup()
-                                # mark it as DONE
-                                done.append(point)
-                            else:
-                                app.logger.debug(str(res))
-
-                    except (Exception, AssertionError) as e:
-                        app.logger.debug(str(e))
-                # remove correctly uploaded points from queue
-                with self._lock:
-                    self._queue = list(filter(lambda p: p not in done, self._queue))
+                if self._should_flush(queue, now):
+                    done = self._upload_batch(app, token, queue)
+                    with self._lock:
+                        self._queue = list(filter(lambda p: p not in done, self._queue))
             # ---
             time.sleep(1)

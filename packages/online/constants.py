@@ -57,7 +57,15 @@ if STATS_API_LOCATION != DEFAULT_STATS_API_LOCATION:
 STATS_API_BASE_URL = f"{STATS_API_PROTOCOL}://{STATS_API_HOSTNAME}:{STATS_API_PORT}/" \
                      f"{STATS_API_BASE_URL}/{STATS_API_VERSION}/{STATS_API_LOCATION}"
 STATS_API_URL = STATS_API_BASE_URL + "{category}"
+# Batch endpoint lives next to statistics/device/, not under it.
+STATS_API_BATCH_URL = STATS_API_BASE_URL.replace(
+    "statistics/device/", "statistics/batch/"
+).rstrip("/") + "/"
 STATS_PUBLISHER_PERIOD_SECS = 60
+# Flush when the outbox reaches this many points, or when the oldest queued
+# point has waited this long. Matches Hub STATISTICS_BATCH_MAX_POINTS.
+STATS_BATCH_MAX_POINTS = 100
+STATS_BATCH_MAX_AGE_SECS = 24 * 60 * 60
 STATS_BOOT_ID_FILE = "/proc/sys/kernel/random/boot_id"
 
 STATS_CATEGORY_TO_DIR = {
